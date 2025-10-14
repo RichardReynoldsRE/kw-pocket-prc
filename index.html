@@ -168,6 +168,7 @@
 
         function PocketPRCTool() {
             const [mode, setMode] = useState('edit');
+            const [isProcessing, setIsProcessing] = useState(false);
             const [formData, setFormData] = useState({
                 propertyAddress: '',
                 homesteadExemption: false,
@@ -249,57 +250,80 @@
                     const images = [];
                     
                     for (let i = 1; i <= pdf.numPages; i++) {
-                        const page = await pdf.getPage(i);
-                        const viewport = page.getViewport({ scale: 2.0 });
-                        const canvas = document.createElement('canvas');
-                        const context = canvas.getContext('2d');
-                        canvas.height = viewport.height;
-                        canvas.width = viewport.width;
-                        
-                        await page.render({ canvasContext: context, viewport: viewport }).promise;
-                        images.push({
-                            data: canvas.toDataURL('image/png'),
-                            name: `${file.name} - Page ${i}`,
-                            type: 'image/png'
-                        });
+                        try {
+                            const page = await pdf.getPage(i);
+                            const viewport = page.getViewport({ scale: 1.5 });
+                            const canvas = document.createElement('canvas');
+                            const context = canvas.getContext('2d');
+                            canvas.height = viewport.height;
+                            canvas.width = viewport.width;
+                            
+                            await page.render({ canvasContext: context, viewport: viewport }).promise;
+                            images.push({
+                                data: canvas.toDataURL('image/jpeg', 0.85),
+                                name: `${file.name} - Page ${i}`,
+                                type: 'image/jpeg'
+                            });
+                        } catch (pageError) {
+                            console.error(`Error processing page ${i}:`, pageError);
+                            // Continue with other pages
+                        }
+                    }
+                    
+                    if (images.length === 0) {
+                        throw new Error('No pages could be processed from PDF');
                     }
                     
                     return images;
                 } catch (error) {
                     console.error('Error converting PDF:', error);
-                    alert('Error processing PDF file. Please try again.');
-                    return [];
+                    throw error;
                 }
             };
 
             const handleFileUpload = async (event) => {
                 const files = Array.from(event.target.files);
+                if (files.length === 0) return;
+                
+                setIsProcessing(true);
                 const newAttachments = [];
                 
-                for (const file of files) {
-                    if (file.type === 'application/pdf') {
-                        const pdfImages = await convertPdfToImages(file);
-                        newAttachments.push(...pdfImages);
-                    } else if (file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        const dataUrl = await new Promise((resolve) => {
-                            reader.onload = (e) => resolve(e.target.result);
-                            reader.readAsDataURL(file);
-                        });
-                        newAttachments.push({
-                            data: dataUrl,
-                            name: file.name,
-                            type: file.type
-                        });
+                try {
+                    for (const file of files) {
+                        try {
+                            if (file.type === 'application/pdf') {
+                                const pdfImages = await convertPdfToImages(file);
+                                newAttachments.push(...pdfImages);
+                            } else if (file.type.startsWith('image/')) {
+                                const reader = new FileReader();
+                                const dataUrl = await new Promise((resolve, reject) => {
+                                    reader.onload = (e) => resolve(e.target.result);
+                                    reader.onerror = (e) => reject(e);
+                                    reader.readAsDataURL(file);
+                                });
+                                newAttachments.push({
+                                    data: dataUrl,
+                                    name: file.name,
+                                    type: file.type
+                                });
+                            }
+                        } catch (fileError) {
+                            console.error(`Error processing ${file.name}:`, fileError);
+                            alert(`Could not process ${file.name}. Skipping this file.`);
+                        }
                     }
+                    
+                    setFormData(prev => ({
+                        ...prev,
+                        attachments: [...prev.attachments, ...newAttachments]
+                    }));
+                } catch (error) {
+                    console.error('Error uploading files:', error);
+                    alert('Error uploading files. Please try again.');
+                } finally {
+                    setIsProcessing(false);
+                    event.target.value = '';
                 }
-                
-                setFormData(prev => ({
-                    ...prev,
-                    attachments: [...prev.attachments, ...newAttachments]
-                }));
-                
-                event.target.value = '';
             };
 
             const removeAttachment = (index) => {
@@ -889,17 +913,29 @@
                                 Attachments
                             </h2>
                             
-                            <label className="w-full bg-red-600 text-white px-4 py-3 rounded font-semibold flex items-center justify-center gap-2 cursor-pointer hover:bg-red-700 transition">
+                            <label className={`w-full px-4 py-3 rounded font-semibold flex items-center justify-center gap-2 cursor-pointer transition ${
+                                isProcessing 
+                                    ? 'bg-gray-400 cursor-not-allowed' 
+                                    : 'bg-red-600 text-white hover:bg-red-700'
+                            }`}>
                                 <Paperclip size={20} />
-                                Add Photos or PDFs
+                                {isProcessing ? 'Processing Files...' : 'Add Photos or PDFs'}
                                 <input
                                     type="file"
                                     accept="image/*,.pdf"
                                     multiple
                                     onChange={handleFileUpload}
+                                    disabled={isProcessing}
                                     className="hidden"
                                 />
                             </label>
+                            
+                            {isProcessing && (
+                                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded text-center">
+                                    <p className="text-blue-700 font-semibold">Processing your files...</p>
+                                    <p className="text-sm text-blue-600 mt-1">Please wait, this may take a moment for PDFs</p>
+                                </div>
+                            )}
                             
                             <p className="text-sm text-gray-600 mt-2 text-center">
                                 Upload images or PDFs - they'll be included in your printed document
