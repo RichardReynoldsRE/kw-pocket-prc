@@ -234,13 +234,23 @@
                     reader.onload = (e) => {
                         try {
                             const data = JSON.parse(e.target.result);
+                            // Ensure attachments array exists
+                            if (!data.attachments) {
+                                data.attachments = [];
+                            }
                             setFormData(data);
                         } catch (error) {
+                            console.error('Error loading JSON:', error);
                             alert('Error loading file. Please make sure it is a valid PRC JSON file.');
                         }
                     };
+                    reader.onerror = () => {
+                        alert('Error reading file. Please try again.');
+                    };
                     reader.readAsText(file);
                 }
+                // Reset the file input
+                event.target.value = '';
             };
 
             const convertPdfToImages = async (file) => {
@@ -285,6 +295,9 @@
                 const files = Array.from(event.target.files);
                 if (files.length === 0) return;
                 
+                // Prevent multiple simultaneous uploads
+                if (isProcessing) return;
+                
                 setIsProcessing(true);
                 const newAttachments = [];
                 
@@ -313,10 +326,12 @@
                         }
                     }
                     
-                    setFormData(prev => ({
-                        ...prev,
-                        attachments: [...prev.attachments, ...newAttachments]
-                    }));
+                    if (newAttachments.length > 0) {
+                        setFormData(prev => ({
+                            ...prev,
+                            attachments: [...(prev.attachments || []), ...newAttachments]
+                        }));
+                    }
                 } catch (error) {
                     console.error('Error uploading files:', error);
                     alert('Error uploading files. Please try again.');
@@ -329,7 +344,7 @@
             const removeAttachment = (index) => {
                 setFormData(prev => ({
                     ...prev,
-                    attachments: prev.attachments.filter((_, i) => i !== index)
+                    attachments: (prev.attachments || []).filter((_, i) => i !== index)
                 }));
             };
 
