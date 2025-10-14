@@ -38,30 +38,39 @@
             .section-header {
                 background-color: #dc2626 !important;
                 color: white !important;
-                padding: 4px 8px;
-                font-size: 12px;
+                padding: 3px 8px;
+                font-size: 11.5px;
             }
             
             .section-title {
                 background-color: #f3f4f6 !important;
                 padding: 2px 8px;
                 font-weight: bold;
-                font-size: 10px;
+                font-size: 9.5px;
                 border-bottom: 1px solid black;
             }
             
             .section-content {
-                padding: 3px 8px;
-                font-size: 9.5px;
-                line-height: 1.25;
+                padding: 2.5px 8px;
+                font-size: 9px;
+                line-height: 1.2;
                 border-bottom: 1px solid black;
+            }
+            
+            .section-content p {
+                margin-top: 2px;
+                margin-bottom: 2px;
             }
             
             .kw-logo {
                 background-color: white !important;
                 color: #dc2626 !important;
                 padding: 2px 5px;
-                font-size: 12px;
+                font-size: 11.5px;
+            }
+            
+            .permits-area {
+                min-height: 30px !important;
             }
         }
         
@@ -292,7 +301,7 @@
                                     </div>
                                     <div className="section-content p-3 border-b-2 border-black">
                                         <p>1. Current Zoning: {formData.currentZoning || '_______________'}</p>
-                                        <p className="mt-2">
+                                        <p>
                                             Flood Zone? 
                                             <label className="ml-2"><input type="checkbox" checked={formData.floodZone === 'Yes'} readOnly /> Yes</label>
                                             <label className="ml-2"><input type="checkbox" checked={formData.floodZone === 'No'} readOnly /> No</label>
@@ -301,15 +310,15 @@
                                     </div>
                                     <div className="section-content p-3 border-b-2 border-black">
                                         <p>2. Does current use appear to conform to zoning restrictions?</p>
-                                        <p className="mt-1">{formData.conformsToZoning || '_______________'}</p>
+                                        <p>{formData.conformsToZoning || '_______________'}</p>
                                     </div>
                                     <div className="section-content p-3 border-b-2 border-black">
                                         <p>3. Number of legal dwelling units permitted per ordinance?</p>
-                                        <p className="mt-1">{formData.dwellingUnits || '_______________'}</p>
+                                        <p>{formData.dwellingUnits || '_______________'}</p>
                                     </div>
                                     <div className="section-content p-3 border-b-2 border-black">
                                         <p>4. Septic system located in a shoreland zone?</p>
-                                        <p className="mt-2">
+                                        <p>
                                             <label className="ml-2"><input type="checkbox" checked={formData.septicInShoreland === 'Yes'} readOnly /> Yes</label>
                                             <label className="ml-2"><input type="checkbox" checked={formData.septicInShoreland === 'No'} readOnly /> No</label>
                                             <label className="ml-2"><input type="checkbox" checked={formData.septicInShoreland === 'N/A'} readOnly /> N/A</label>
@@ -317,7 +326,7 @@
                                     </div>
                                     <div className="section-content p-3 border-b-2 border-black">
                                         <p className="font-semibold">5. Record dates & descriptions of permits issued or code enforcement issues, if any. DO NOT LEAVE BLANK</p>
-                                        <p className="mt-2 whitespace-pre-wrap min-h-[40px]">{formData.permitsDescription || ''}</p>
+                                        <p className="permits-area whitespace-pre-wrap">{formData.permitsDescription || ''}</p>
                                     </div>
                                 </div>
 
