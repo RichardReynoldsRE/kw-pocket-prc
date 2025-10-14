@@ -8,6 +8,7 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
         @media print {
             body {
@@ -72,6 +73,18 @@
             .permits-area {
                 min-height: 15px !important;
             }
+            
+            .attachment-page {
+                page-break-before: always;
+                page-break-inside: avoid;
+            }
+            
+            .attachment-image {
+                max-width: 100%;
+                max-height: 9in;
+                margin: 0 auto;
+                display: block;
+            }
         }
         
         @media screen {
@@ -86,6 +99,11 @@
 
     <script type="text/babel">
         const { useState } = React;
+
+        // Set up PDF.js worker
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
 
         const Printer = ({ size = 24 }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -135,6 +153,19 @@
             </svg>
         );
 
+        const Paperclip = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+            </svg>
+        );
+
+        const Trash = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+        );
+
         function PocketPRCTool() {
             const [mode, setMode] = useState('edit');
             const [formData, setFormData] = useState({
@@ -164,7 +195,8 @@
                 associationFinancials: false,
                 condoCertificate: false,
                 septicDesign: false,
-                completedBy: ''
+                completedBy: '',
+                attachments: []
             });
 
             const handleChange = (field, value) => {
@@ -208,6 +240,73 @@
                     };
                     reader.readAsText(file);
                 }
+            };
+
+            const convertPdfToImages = async (file) => {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    const images = [];
+                    
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const viewport = page.getViewport({ scale: 2.0 });
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        
+                        await page.render({ canvasContext: context, viewport: viewport }).promise;
+                        images.push({
+                            data: canvas.toDataURL('image/png'),
+                            name: `${file.name} - Page ${i}`,
+                            type: 'image/png'
+                        });
+                    }
+                    
+                    return images;
+                } catch (error) {
+                    console.error('Error converting PDF:', error);
+                    alert('Error processing PDF file. Please try again.');
+                    return [];
+                }
+            };
+
+            const handleFileUpload = async (event) => {
+                const files = Array.from(event.target.files);
+                const newAttachments = [];
+                
+                for (const file of files) {
+                    if (file.type === 'application/pdf') {
+                        const pdfImages = await convertPdfToImages(file);
+                        newAttachments.push(...pdfImages);
+                    } else if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        const dataUrl = await new Promise((resolve) => {
+                            reader.onload = (e) => resolve(e.target.result);
+                            reader.readAsDataURL(file);
+                        });
+                        newAttachments.push({
+                            data: dataUrl,
+                            name: file.name,
+                            type: file.type
+                        });
+                    }
+                }
+                
+                setFormData(prev => ({
+                    ...prev,
+                    attachments: [...prev.attachments, ...newAttachments]
+                }));
+                
+                event.target.value = '';
+            };
+
+            const removeAttachment = (index) => {
+                setFormData(prev => ({
+                    ...prev,
+                    attachments: prev.attachments.filter((_, i) => i !== index)
+                }));
             };
 
             const formatDateForDisplay = (dateString) => {
@@ -395,6 +494,22 @@
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Attachments */}
+                            {formData.attachments && formData.attachments.length > 0 && (
+                                formData.attachments.map((attachment, index) => (
+                                    <div key={index} className="attachment-page">
+                                        <div className="text-center mb-4 no-print">
+                                            <h2 className="text-lg font-bold">Attachment {index + 1}: {attachment.name}</h2>
+                                        </div>
+                                        <img 
+                                            src={attachment.data} 
+                                            alt={attachment.name}
+                                            className="attachment-image"
+                                        />
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 );
@@ -765,6 +880,54 @@
                                 className="w-full border rounded px-3 py-2"
                                 placeholder="Your name"
                             />
+                        </div>
+
+                        {/* Attachments Section */}
+                        <div className="bg-white rounded-lg shadow p-4 mb-4">
+                            <h2 className="text-lg font-bold mb-4 text-red-600 flex items-center gap-2">
+                                <Paperclip size={24} />
+                                Attachments
+                            </h2>
+                            
+                            <label className="w-full bg-red-600 text-white px-4 py-3 rounded font-semibold flex items-center justify-center gap-2 cursor-pointer hover:bg-red-700 transition">
+                                <Paperclip size={20} />
+                                Add Photos or PDFs
+                                <input
+                                    type="file"
+                                    accept="image/*,.pdf"
+                                    multiple
+                                    onChange={handleFileUpload}
+                                    className="hidden"
+                                />
+                            </label>
+                            
+                            <p className="text-sm text-gray-600 mt-2 text-center">
+                                Upload images or PDFs - they'll be included in your printed document
+                            </p>
+
+                            {formData.attachments && formData.attachments.length > 0 && (
+                                <div className="mt-4 space-y-2">
+                                    <h3 className="font-semibold">Attached Files ({formData.attachments.length}):</h3>
+                                    {formData.attachments.map((attachment, index) => (
+                                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded border">
+                                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                <img 
+                                                    src={attachment.data} 
+                                                    alt={attachment.name}
+                                                    className="w-12 h-12 object-cover rounded"
+                                                />
+                                                <span className="text-sm truncate">{attachment.name}</span>
+                                            </div>
+                                            <button
+                                                onClick={() => removeAttachment(index)}
+                                                className="text-red-600 hover:text-red-800 p-2"
+                                            >
+                                                <Trash size={20} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
