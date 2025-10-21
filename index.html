@@ -11,16 +11,21 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
         @media print {
-            body {
-                margin: 0;
-                padding: 0;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100%;
+                height: 100%;
             }
             
             @page {
                 size: letter;
-                margin: 0.35in;
+                margin: 0.15in;
             }
             
             .no-print {
@@ -29,61 +34,145 @@
             
             .print-container {
                 padding: 0 !important;
+                margin: 0 !important;
                 max-width: 100% !important;
+                width: 100% !important;
+                page-break-inside: avoid;
+                transform: scale(0.98);
+                transform-origin: top left;
             }
             
             .form-border {
-                border: 2px solid black;
+                border: 1px solid black;
+                page-break-inside: avoid;
+                margin: 0;
             }
             
             .section-header {
                 background-color: #dc2626 !important;
                 color: white !important;
-                padding: 1.5px 6px;
-                font-size: 10.5px;
+                padding: 0.5px 3px !important;
+                font-size: 7px !important;
+                line-height: 1.1 !important;
+            }
+            
+            .section-header h1 {
+                font-size: 7px !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                line-height: 1.1 !important;
+            }
+            
+            .section-header p {
+                font-size: 5.5px !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                line-height: 1.1 !important;
+            }
+            
+            .section-header > div {
+                padding: 1px !important;
+                margin: 0 !important;
             }
             
             .section-title {
                 background-color: #f3f4f6 !important;
-                padding: 0.5px 6px;
+                padding: 0.5px 3px !important;
                 font-weight: bold;
-                font-size: 8.5px;
-                border-bottom: 1px solid black;
+                font-size: 6px !important;
+                line-height: 1.05 !important;
+                border-bottom: 0.5px solid black;
+                margin: 0 !important;
             }
             
             .section-content {
-                padding: 0.5px 6px;
-                font-size: 8px;
-                line-height: 1.05;
-                border-bottom: 1px solid black;
+                padding: 0.5px 3px !important;
+                font-size: 5.5px !important;
+                line-height: 1.1 !important;
+                border-bottom: 0.5px solid black;
+                margin: 0 !important;
             }
             
             .section-content p {
-                margin-top: 0px;
-                margin-bottom: 0px;
+                margin: 0 !important;
+                padding: 0.5px 0 !important;
+                font-size: 5.5px !important;
+            }
+            
+            .section-content label {
+                font-size: 5.5px !important;
+                line-height: 1.1 !important;
+            }
+            
+            .section-content input[type="checkbox"] {
+                width: 6px !important;
+                height: 6px !important;
+                margin: 0 2px !important;
+            }
+            
+            .section-content .flex {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 2px !important;
             }
             
             .kw-logo {
                 background-color: white !important;
                 color: #dc2626 !important;
-                padding: 1px 4px;
-                font-size: 10.5px;
+                padding: 1px 2px !important;
+                font-size: 7px !important;
+                margin: 0 !important;
             }
             
             .permits-area {
-                min-height: 15px !important;
+                min-height: 8px !important;
+                font-size: 5.5px !important;
+                line-height: 1.1 !important;
             }
             
             .attachment-page {
                 page-break-before: always;
                 page-break-inside: avoid;
+                margin: 0;
+                padding: 0.15in;
+                width: 100%;
+                height: 100%;
             }
             
             .attachment-image {
-                max-width: 100%;
-                max-height: 9in;
-                margin: 0 auto;
-                display: block;
+                max-width: 100% !important;
+                max-height: 10in !important;
+                height: auto !important;
+                width: auto !important;
+                margin: 0 auto !important;
+                display: block !important;
+                object-fit: contain !important;
+            }
+            
+            /* iPhone specific */
+            @supports (-webkit-touch-callout: none) {
+                .print-container {
+                    transform: scale(0.95) !important;
+                }
+                
+                .form-border {
+                    page-break-inside: avoid !important;
+                    -webkit-column-break-inside: avoid !important;
+                    break-inside: avoid !important;
+                }
+                
+                .attachment-page {
+                    page-break-inside: avoid !important;
+                    -webkit-column-break-inside: avoid !important;
+                    break-inside: avoid !important;
+                }
+                
+                .section-header,
+                .section-title,
+                .section-content {
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
+                }
             }
         }
         
